@@ -1,5 +1,5 @@
 env = "prod"
 
 rg_name = "roboshop-prod"
-rg_location = "Denmark East"
+rg_location = "UK West"
 
