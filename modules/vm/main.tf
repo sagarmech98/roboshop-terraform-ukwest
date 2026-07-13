@@ -24,40 +24,62 @@ resource "azurerm_network_interface_security_group_association" "nsg-attach" {
 }
 
 
-resource "azurerm_virtual_machine" "vm" {
-  name                          = var.name
-  location                      = var.rg_location
-  resource_group_name           = var.rg_name
-  network_interface_ids         = [azurerm_network_interface.privateip.id]
-  vm_size                       = "Standard_D2ls_v5"
-  delete_os_disk_on_termination = true
+# resource "azurerm_virtual_machine" "vm" {
+#   name                          = var.name
+#   location                      = var.rg_location
+#   resource_group_name           = var.rg_name
+#   network_interface_ids         = [azurerm_network_interface.privateip.id]
+#   vm_size                       = "Standard_D2ls_v5"
+#   delete_os_disk_on_termination = true
   
   
-  storage_image_reference {
-    id = var.storage_image_reference_id
+#   storage_image_reference {
+#     id = var.storage_image_reference_id
+#   }
+
+#   storage_os_disk {
+#     name              = "${var.name}-disk"
+#     caching           = "ReadWrite"
+#     create_option     = "FromImage"
+#     managed_disk_type = "Standard_LRS"
+#   }
+
+#   os_profile {
+#     computer_name  = var.name
+#     admin_username = data.vault_generic_secret.ssh.data["username"]
+#     admin_password = data.vault_generic_secret.ssh.data["password"]
+#   }
+
+#   os_profile_linux_config {
+#     disable_password_authentication = false
+#   }
+# }
+resource "azurerm_linux_virtual_machine" "vm" {
+  name                            = var.name
+  location                        = var.rg_location
+  resource_group_name             = var.rg_name
+  network_interface_ids           = [azurerm_network_interface.privateip.id]
+  size                            = "Standard_D2ls_v5"
+  admin_username                  = data.vault_generic_secret.ssh.data["username"]
+  admin_password                  = data.vault_generic_secret.ssh.data["password"]
+  disable_password_authentication = false
+
+  source_image_id = var.storage_image_reference_id
+
+  os_disk {
+    name                 = "${var.name}-disk"
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
 
-  storage_os_disk {
-    name              = "${var.name}-disk"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Standard_LRS"
-  }
-
-  os_profile {
-    computer_name  = var.name
-    admin_username = data.vault_generic_secret.ssh.data["username"]
-    admin_password = data.vault_generic_secret.ssh.data["password"]
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
+  # Required because the gallery image mandates Trusted Launch
+  secure_boot_enabled = true
+  vtpm_enabled        = true
 }
 
 resource "null_resource" "anisble" {
   depends_on = [
-  azurerm_virtual_machine.vm
+  azurerm_linux_virtual_machine.vm
   ]
    connection {
     type     = "ssh"
