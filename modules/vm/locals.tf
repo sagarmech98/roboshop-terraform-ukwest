@@ -2,4 +2,4 @@ locals {
   role_name = var.type == "db" ? var.name : "${var.name}-docker"
 }
 
--e role_name=${local.role_name}
+#-e role_name=${local.role_name}
